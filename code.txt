@@ -1,0 +1,1345 @@
+#pragma semicolon 1
+
+#include <sourcemod>
+#include <sdktools_functions>
+#include <sdktools_engine>
+#include <sdktools_trace>
+#include <sdktools_tempents>
+#include <sdktools_tempents_stocks>
+#include <sdktools>
+#include <cstrike>
+#include <sdkhooks>
+
+new g_BeamSprite; 
+new g_HaloSprite; 
+new g_ExplosionSprite;
+new g_SmokeSprite;
+new g_Glow;
+new g_Laser;
+new g_SteamSprite;
+new g_LightningSprite;
+
+new Float:bspos[3];
+new Float:savebspos;
+
+public Plugin:myinfo = 
+{
+	name	= "GetCoords",
+	author	= "wS / World-Source.Ru",
+	version = "1.3"
+};
+
+
+public OnPluginStart()
+{
+	RegConsoleCmd("tesla", Tesla);
+	RegConsoleCmd("beam", Beam);
+	RegConsoleCmd("exp", Explosion);
+	RegConsoleCmd("spark", Spark);
+	RegConsoleCmd("smoke", Smoke);
+	RegConsoleCmd("glow", Glow);
+	RegConsoleCmd("splash", Splash);
+	RegConsoleCmd("laser", Laser);
+	RegConsoleCmd("markerpp", Laser2);
+	RegConsoleCmd("cyl", Cyl);
+	RegConsoleCmd("lifecyl", Lifecyl);
+	RegConsoleCmd("conus", Conus);
+	RegConsoleCmd("dust", Dust);
+	RegConsoleCmd("mf", MuzzleFlash);
+	RegConsoleCmd("lightning", Lightning);
+	RegConsoleCmd("dc", DustClock);
+	RegConsoleCmd("sphere", Sphere);
+	RegConsoleCmd("bs", BrokeSphere);
+	RegConsoleCmd("cell", Cell);
+	RegConsoleCmd("atom", Atom);
+	RegConsoleCmd("fb", FireBall);
+	RegConsoleCmd("cube", Cube);
+}
+
+
+public OnMapStart() //Прекэшим спрайты и свечения
+{ 
+  g_BeamSprite = PrecacheModel("materials/sprites/laserbeam.vmt"); 
+  g_Laser = PrecacheModel("materials/sprites/laserbeam.vmt"); 
+  g_HaloSprite = PrecacheModel("materials/sprites/glow01.vmt"); 
+  g_ExplosionSprite = PrecacheModel("materials/sprites/sprite_fire01.vmt");
+  g_SmokeSprite = PrecacheModel( "sprites/smoke.vmt");
+  g_Glow = PrecacheModel("particle/particle_glow_10.vmt");  
+  g_SteamSprite = PrecacheModel("sprites/steam1.vmt"); 
+  g_LightningSprite = PrecacheModel("sprites/lgtning.vmt");
+}
+
+public Action:Tesla(client, args) // Эффект тесла
+{
+            new Float:pos[3];
+  wS_GetLookPos(client, pos); 
+
+         new tesla = CreateEntityByName("point_tesla");  //Он делается с помощью создания entity объекта "point_tesla"
+         DispatchKeyValue(tesla, "m_flRadius", "100.0");  // Радиус 100 единиц
+         DispatchKeyValue(tesla, "m_SoundName", "DoSpark");  //Звук искр
+         DispatchKeyValue(tesla, "beamcount_min", "42");  // Минимальное Количество всплесков
+         DispatchKeyValue(tesla, "beamcount_max", "62");  //Максимальное
+         DispatchKeyValue(tesla, "texture", "sprites/physbeam.vmt");  // Текстура спрайта
+         DispatchKeyValue(tesla, "m_Color", "255 255 255");  //Цвет
+         DispatchKeyValue(tesla, "thick_min", "10.0");  
+         DispatchKeyValue(tesla, "thick_max", "11.0"); 
+         DispatchKeyValue(tesla, "lifetime_min", "0.3"); //Минимальное время жизни
+         DispatchKeyValue(tesla, "lifetime_max", "1.1");  //Максимальное время жизни
+         DispatchKeyValue(tesla, "interval_min", "0.1"); 
+         DispatchKeyValue(tesla, "interval_max", "0.2"); 
+              
+         DispatchSpawn(tesla); //Спавним наш "point_tesla"
+         TeleportEntity(tesla, pos, NULL_VECTOR, NULL_VECTOR); //И телепортируем на позицию прицела
+ 
+              
+         AcceptEntityInput(tesla, "TurnOn"); 
+         AcceptEntityInput(tesla, "DoSpark");
+		 return Plugin_Handled;
+}
+
+
+
+public Action:Beam(client, args)  // Маяк
+{
+  new Float:pos[3];                                                                                             //pos - позиция 
+  wS_GetLookPos(client, pos);// Получаем позицию прицела                                                        //10.0 - начальная диаметр,
+  TE_SetupBeamRingPoint(pos, 10.0, 500.0, g_BeamSprite, g_HaloSprite, 0, 15, 1.5, 2.0, 0.0, {255, 0, 0, 255}, 10, 1); //50.0 - конечная ширина, .
+  TE_SendToAll(); // Применяем                                                                                 //g_BeamSprite - спрайт маяка
+                                                                                                              //g_HaloSprite - спрайт свечения
+																											  //1.0 - время жизни маяка
+																											  //2.0 - ширина линии
+																											  //0.0 - колебания
+																											  //{255, 0, 0, 255} - цвет
+																											  //10 - скорость мерцания
+																											  //0 - флаги. Я проверял, ничего не меняется, если изменять.
+  // ВНИМАНИЕ!!!! ЕСЛИ НАЧАЛЬНЫЙ РАДИУС И КОНЕЧНЫЙ РАДИУС МАЯКА ОДИНАКОВЫ, ТО МАЯК РАБОТАТЬ НЕ БУДЕТ!!!! Так же и с лазером!
+  return Plugin_Handled;
+}
+
+
+
+public Action:Explosion(client, args) // Взрыв
+{
+  new Float:pos[3];
+  wS_GetLookPos(client, pos);                                       //pos - точка взрыва
+   TE_SetupExplosion(pos, g_ExplosionSprite, 10.0, 1, 0, 100, 5000); //g_ExplosionSprite - прекэшнутый спрайт взрыва
+   TE_SendToAll();  // Применяем                                   //10.0 - растяжение спрайта
+                                                                  //100 - радиус взрыва
+																  //5000 - магнитуда взрыва
+	return Plugin_Handled;															  
+}
+
+
+
+public Action:Spark(client, args) //Искры (падают сверху вниз в нашем случае)
+{
+  new Float:pos[3]; 
+  wS_GetLookPos(client, pos); // Получаем нижнюю позицию
+  new Float:two[3];
+  two[2] = pos [2] + 10.0; // Получаем верхнюю позицию (добавляем к нижней 10 единиц)
+  
+   TE_SetupSparks(pos, two, 500, 100); // pos - стартовая позиция
+                                     // two - конечная позиция (направление)
+									 // 500 - частота искр
+ 									 // 100 - длина следа
+   TE_SendToAll(); // Применяем
+   return Plugin_Handled;
+}
+
+
+
+public Action:Smoke(client, args) // Дым
+{
+  new Float:pos[3];
+  wS_GetLookPos(client, pos);
+  TE_SetupSmoke(pos, g_SmokeSprite, 100.0, 10); // pos - Позиция дыма
+                                              // g_SmokeSprite - спрайт дыма
+											  // 100.0 растяжение спрайта дыма
+											  // 10 - частота кадров анимации в секунду
+  TE_SendToAll(); // Применяем
+  return Plugin_Handled;
+}
+
+
+
+public Action:Glow(client, args) // Свечение
+{
+  new Float:pos[3];
+  wS_GetLookPos(client, pos);
+  TE_SetupGlowSprite(pos, g_Glow, 5.0, 5.0, 20); //pos - позиция
+                                              //g_Glow - спрайт
+											  //5.0 - время жизни
+											  //5.0 - размер
+											  //20 - яркость
+  TE_SendToAll();  // Применяем
+  return Plugin_Handled;
+}
+
+
+
+public Action:Splash(client, args) //Энергетический всплеск (по-другому и не назовешь :D)
+{
+  new Float:pos[3];
+  wS_GetLookPos(client, pos);
+  TE_SetupEnergySplash(pos,pos, false);  // pos - начальная позиция
+                                       // pos - конечная позиция (направление)
+									   // fasle - не взрывается (true - взрывается)
+  TE_SendToAll();  // Применяем
+  return Plugin_Handled;
+}
+
+
+
+public Action:Laser(client, args) // Лазер
+{
+	decl Float:pos[3], Float:clientpos[3];
+	wS_GetLookPos(client, pos); 
+	GetClientEyePosition(client, clientpos); // Получаем позицию головы                // clientpos - начальная позиция, 
+  TE_SetupBeamPoints(clientpos, pos, g_Laser,0,0,0,5.0,3.0,3.0,10,0.0,{255, 0, 0, 255},30); // pos - конечная позиция
+  TE_SendToAll(0.0); // Применяем                                                        // g_laser - спрайт
+return Plugin_Handled;
+  }                                                                                     // 0 - спрайт свечения (нет)
+                                                                                      // 0 - нач. слайд анимации
+	 																		 		  // 0 - скорость анимации
+	 																			      // 5.0 - время жизни
+		 																			  // 3.0 - нач. ширина
+																					  // 3.0 - кон. ширина
+		 																			  // 10 - время затухания
+           																			  // 0.0 - амплитуда колебаний
+                                                                                      // {255, 0, 0, 255} - цвет
+																					  // 30 - скорость
+																					  
+																					  
+public Action:Laser2(client, args) // Лазер
+{
+	decl Float:pos[3], Float:clientpos[3];
+	wS_GetLookPos(client, pos); 
+	GetClientEyePosition(client, clientpos); // Получаем позицию головы                // clientpos - начальная позиция, 
+  TE_SetupBeamPoints(clientpos, pos, g_Laser,0,0,0,5.0,3.0,3.0,10,0.0,{0, 225, 225, 255},30); // pos - конечная позиция
+  TE_SendToAll(0.0); // Применяем                                                        // g_laser - спрайт
+    
+	new Float:center[3], Float:one[3], Float:two[3], Float:three[3], Float:four[3], Float:five[3], Float:six[3], Float:seven[3], Float:eight[3]; // нижние точки
+	  
+	  //Создаем 8 переменных для 8 точек. Я не использовал цикл, потому что мне нужна каждая позиция отдельно, чтобы их потом связать линиями.
+	  
+    wS_GetLookPos(client, center);  
+       
+    new Num      = 8; // Кол-во точек вокруг заданной позиции 
+	
+    new Degrees = 360;  //Градусов в круге
+    new Coeff    = 0;  //коэффициент
+    new Mul      = 50;  
+    
+    new Float:oneh[3], Float:twoh[3], Float:threeh[3], Float:fourh[3], Float:fiveh[3], Float:sixh[3], Float:sevenh[3], Float:eighth[3]; //Создаем переменные верхних позиций
+	
+	new Float:point;
+	
+     point = DegToRad(float(0 * (Degrees / Num) + Coeff)); 
+      
+     //вычисляем верхнюю первую точку
+	 
+     oneh[0] = center[0] + Sine(point) * Mul;  //Честно говоря, не знаю, как он вычисляет. В геометрии не силен. Спросите у хвостега, это его код.
+     oneh[1] = center[1] + Cosine(point) * Mul; 
+     oneh[2] = center[2] + 100.0; // 50.0 - Высота клетки 
+	 
+	 one[0] = oneh[0]; //Получаем нижнюю точку
+	 one[1] = oneh[1];
+	 one[2] = center[2]; //Т.к. она нижняя, то выысота будет, как у центра.
+	 
+	 TE_SetupBeamPoints(one, oneh, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30); //Создаем вертикальные лазеры, соединяющие 2 наши точки.
+	 TE_SendToAll();
+	  
+
+	 
+	 point = DegToRad(float(1 * (Degrees / Num) + Coeff)); 
+	 
+     	 //вычисляем 2 точку
+		 
+     twoh[0] = center[0] + Sine(point) * Mul; 
+     twoh[1] = center[1] + Cosine(point) * Mul; 
+     twoh[2] = center[2] + 100.0; 
+	 
+	 two[0] = twoh[0];
+	 two[1] = twoh[1];
+	 two[2] = center[2];
+	 
+	 TE_SetupBeamPoints(two, twoh, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30); //Создаем вертикальные лазеры, соединяющие 2 наши точки.
+	 TE_SendToAll();
+	 
+	 
+	 point = DegToRad(float(2 * (Degrees / Num) + Coeff)); 
+        
+	 //вычисляем 3 точку 	
+		
+     threeh[0] = center[0] + Sine(point) * Mul; 
+     threeh[1] = center[1] + Cosine(point) * Mul; 
+     threeh[2] = center[2] + 100.0; 
+	 
+	 three[0] = threeh[0];
+	 three[1] = threeh[1];
+	 three[2] = center[2];
+	 
+	 TE_SetupBeamPoints(three, threeh, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 
+	 point = DegToRad(float(3 * (Degrees / Num) + Coeff)); 
+        
+		//вычисляем 4 точку
+		
+     fourh[0] = center[0] + Sine(point) * Mul; 
+     fourh[1] = center[1] + Cosine(point) * Mul; 
+     fourh[2] = center[2] + 100.0; 
+	 
+	 four[0] = fourh[0];
+	 four[1] = fourh[1];
+	 four[2] = center[2];
+	 
+	 TE_SetupBeamPoints(four, fourh, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 
+	 
+	 
+	 point = DegToRad(float(4 * (Degrees / Num) + Coeff)); 
+        
+		//вычисляем 5 точку
+		
+     fiveh[0] = center[0] + Sine(point) * Mul; 
+     fiveh[1] = center[1] + Cosine(point) * Mul; 
+     fiveh[2] = center[2] + 100.0; 
+	 
+	 five[0] = fiveh[0];
+	 five[1] = fiveh[1];
+	 five[2] = center[2];
+	 
+	 TE_SetupBeamPoints(five, fiveh, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 
+	 
+	 point = DegToRad(float(5 * (Degrees / Num) + Coeff)); 
+        
+		//вычисляем 6 точку
+		
+     sixh[0] = center[0] + Sine(point) * Mul; 
+     sixh[1] = center[1] + Cosine(point) * Mul; 
+     sixh[2] = center[2] + 100.0; 
+	 
+	 six[0] = sixh[0];
+	 six[1] = sixh[1];
+	 six[2] = center[2];
+	 
+	 TE_SetupBeamPoints(six, sixh, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 
+	 
+	 point = DegToRad(float(6 * (Degrees / Num) + Coeff)); 
+        
+		//вычисляем 7 точку
+		
+     sevenh[0] = center[0] + Sine(point) * Mul; 
+     sevenh[1] = center[1] + Cosine(point) * Mul; 
+     sevenh[2] = center[2] + 100.0; 
+	 
+	 seven[0] = sevenh[0];
+	 seven[1] = sevenh[1];
+	 seven[2] = center[2];
+	 
+	 TE_SetupBeamPoints(seven, sevenh, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 
+	 
+	 
+	 point = DegToRad(float(7 * (Degrees / Num) + Coeff));
+        
+		 //вычисляем 8 точку
+		
+     eighth[0] = center[0] + Sine(point) * Mul; 
+     eighth[1] = center[1] + Cosine(point) * Mul; 
+     eighth[2] = center[2] + 100.0; 
+	 
+	 eight[0] = eighth[0];
+	 eight[1] = eighth[1];
+	 eight[2] = center[2];
+	 
+	 TE_SetupBeamPoints(eight, eighth, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 
+	 //Соединяем верхние и нижние точки друг с другом, чтобы получилась "крыша"
+	 TE_SetupBeamPoints(one, two, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);  //Соединяем нижние точки по кругу: 1 со 2, 2 с 3, 3 с 4, ... , 8 с 1  
+	 TE_SendToAll();
+	 TE_SetupBeamPoints(two, three, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 TE_SetupBeamPoints(three, four, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 TE_SetupBeamPoints(four, five, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 TE_SetupBeamPoints(five, six, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 TE_SetupBeamPoints(six, seven, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 TE_SetupBeamPoints(seven, eight, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 TE_SetupBeamPoints(eight, one, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 
+	 TE_SetupBeamPoints(oneh, twoh, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);//Соединяем верхние точки по кругу: 1 со 2, 2 с 3, 3 с 4, ... , 8 с 1  
+	 TE_SendToAll();
+	 TE_SetupBeamPoints(twoh, threeh, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 TE_SetupBeamPoints(threeh, fourh, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 TE_SetupBeamPoints(fourh, fiveh, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 TE_SetupBeamPoints(fiveh, sixh, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 TE_SetupBeamPoints(sixh, sevenh, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 TE_SetupBeamPoints(sevenh, eighth, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 TE_SetupBeamPoints(eighth, oneh, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 
+	 //Для красоты я соединил между собой верхние точки, чтобы получилась своеобразная "крыша". Для того, чтобы понять, как соединять, нарисуйте на листочке.
+	 //Соединяем 1 точку со всеми, кроме 2 и 8 (т.к. она уже соединена с ними)
+	 TE_SetupBeamPoints(oneh, threeh, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 TE_SetupBeamPoints(oneh, fourh, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 TE_SetupBeamPoints(oneh, fiveh, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 TE_SetupBeamPoints(oneh, fiveh, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 TE_SetupBeamPoints(oneh, sixh, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 TE_SetupBeamPoints(oneh, sevenh, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 //Соединяем 2 точку со всеми, кроме 1 и 3.
+	 TE_SetupBeamPoints(twoh, fourh, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 TE_SetupBeamPoints(twoh, fiveh, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 TE_SetupBeamPoints(twoh, sixh, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 TE_SetupBeamPoints(twoh, sevenh, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 TE_SetupBeamPoints(twoh, eighth, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 //Соединяем 3 точку со всеми, кроме 1, 2 и 4.
+	 TE_SetupBeamPoints(threeh, fiveh, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 TE_SetupBeamPoints(threeh, sixh, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 TE_SetupBeamPoints(threeh, sevenh, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 TE_SetupBeamPoints(threeh, eighth, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 //Соединяем 4 точку с 6, 7 и 8 (т.к. со всеми остальными она уже соединена).
+	 TE_SetupBeamPoints(fourh, sixh, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 TE_SetupBeamPoints(fourh, sevenh, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 TE_SetupBeamPoints(fourh, eighth, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 //Соединяем 5 точку с 7 и 8 по той же причине.
+	 TE_SetupBeamPoints(fiveh, sevenh, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 TE_SetupBeamPoints(fiveh, eighth, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 //Соединяем 6 точку с 8.
+	 TE_SetupBeamPoints(sixh, eighth, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 
+return Plugin_Handled;
+  }                                                                                     // 0 - спрайт свечения (нет)
+                                                                                      // 0 - нач. слайд анимации
+	 																		 		  // 0 - скорость анимации
+	 																			      // 5.0 - время жизни
+		 																			  // 3.0 - нач. ширина
+																					  // 3.0 - кон. ширина
+		 																			  // 10 - время затухания
+           																			  // 0.0 - амплитуда колебаний
+                                                                                      // {255, 0, 0, 255} - цвет
+																					  // 30 - скорость
+																					  
+
+public Action:Conus(client, args) // Конус
+{
+  new Float:pos[3];
+  wS_GetLookPos(client, pos);
+  for(new Float:i = 1.0; i <= 150.0; i = i + 1.0) // Максимальный диаметр у нас будет 150 единиц. Выполняем цикл:
+  {                                           // Пока i (текущий диаметр) меньше 150 ед (макс. диаметр), то создаем маяк и увеличиваем диаметр на 1 ед.
+  TE_SetupBeamRingPoint(pos, i, i+1.0, g_BeamSprite, g_HaloSprite, 0, 15, 5.0, 2.0, 0.0, {255, 0, 0, 255}, 10, 0); // i - начальная ширина, i+1.0 - конечная
+  TE_SendToAll(); // Применяем
+  pos[2] = pos[2] + 1.0; //Увеличиваем Z координату на 1, чтобы маяки не накладывались друг на друга.
+  }  // И так делаем, пока диаметр не достигнет 150 ед.
+  return Plugin_Handled;
+}
+
+
+
+public Action:Cyl(client, args) //Цилиндр
+{
+  new Float:pos[3];
+  wS_GetLookPos(client, pos);
+ for (new i = 1; i <= 135; i++) // Создаем цикл. На этот раз радиус один. i просто счетчик высоты. Цилиндр будет высотой 150 единиц.
+ {                           // Создаем маяк (кольцо) с нач. диаметром 50.0 ед. и конечным 51.0 единица, чтобы все работало.
+  TE_SetupBeamRingPoint(pos, 75.0, 76.0, g_BeamSprite, g_HaloSprite, 0, 15, 5.0, 2.0, 0.0, {255, 255, 0, 255}, 10, 0);
+  TE_SendToAll(); // Применяем
+  pos[2] = pos[2] + 1.0; // Добавляем + 1 единицу к координате Z, чтобы фигура росла в высоту.
+  }
+  return Plugin_Handled;
+}
+ 
+ 
+ 
+public Action:Dust(client, args) // Песчаное облако
+{
+  new Float:pos[3];
+  wS_GetLookPos(client, pos);
+  TE_SetupDust(pos,pos, 50.0, 0.5); //pos - начальная позиция
+                                  //pos - позиция направления (у нас на месте)
+                                  //50.0 - размер облака
+ 								  //0.5 - скорость частиц в облаке.
+  TE_SendToAll();  // Применяем
+  return Plugin_Handled;
+}
+
+
+
+public Action:Lifecyl(client, args) // Пульсирующий цилиндр
+{                                  // Так же, как и цилиндр, только есть разница диаметров больше, чтобы маяк пульсировал.
+  new Float:pos[3];
+  wS_GetLookPos(client, pos);
+ for (new i = 1; i <= 150; i++)
+ {
+  TE_SetupBeamRingPoint(pos, 50.0, 70.0, g_BeamSprite, g_HaloSprite, 0, 15, 5.0, 2.0, 0.0, {255, 255, 0, 255}, 10, 0);
+  TE_SendToAll(); // Применяем
+  pos[2] = pos[2] + 1.0;
+  }
+  return Plugin_Handled;
+}
+
+
+
+public Action:MuzzleFlash(client, args) // Песчаное облако
+{
+  new Float:pos[3];
+  wS_GetLookPos(client, pos);
+  TE_SetupMuzzleFlash(pos,pos, 10.0, 2); // pos - начальная позиция
+                                       // pos - позиция направления
+ 									   // 10.0 - увеличение
+									   // 1 - Тип вспышки 
+  TE_SendToAll();  // Применяем         // Типы: 1 - несколько светящихся шаров, 2 - что-то вроде Всплеска энергии, 3 - у меня не работает, 4 - несколько фиолетовых импульсов,
+  return Plugin_Handled;
+}
+
+
+
+public Action:DustClock(client, args) // Двойной конус (в форме песочных часов)
+{
+  new Float:pos[3];
+  wS_GetLookPos(client, pos); //Будем создавать через каждые 5 единиц высоты статичный (не двигающийся) маяк 
+                                                                                                               // Он будет жить 15.0 секунд
+  TE_SetupBeamRingPoint(pos, 63.0, 63.1, g_BeamSprite, g_HaloSprite, 0, 15, 15.0, 2.0, 0.0, {255, 0, 0, 255}, 10, 0); //Первый маяк с максимальным диаметром и минимальной высотой (63.0 и высота позиции)
+  TE_SendToAll();  // Применяем
+  pos[2] = pos[2] + 5.0; // Через каждый маяк увеличиваем высоту на 5 единиц и диаметр на 5.0 единиц
+  TE_SetupBeamRingPoint(pos, 58.0, 58.1, g_BeamSprite, g_HaloSprite, 0, 15, 15.0, 2.0, 0.0, {255, 0, 0, 255}, 10, 0);
+  TE_SendToAll();  // Применяем  
+  pos[2] = pos[2] + 5.0;
+  TE_SetupBeamRingPoint(pos, 53.0, 53.1, g_BeamSprite, g_HaloSprite, 0, 15, 15.0, 2.0, 0.0, {255, 0, 0, 255}, 10, 0);
+  TE_SendToAll();  // Применяем
+  pos[2] = pos[2] + 5.0;
+  TE_SetupBeamRingPoint(pos, 48.0, 48.1, g_BeamSprite, g_HaloSprite, 0, 15, 15.0, 2.0, 0.0, {255, 0, 0, 255}, 10, 0);
+  TE_SendToAll();  // Применяем
+  pos[2] = pos[2] + 5.0;
+  TE_SetupBeamRingPoint(pos, 43.0, 43.1, g_BeamSprite, g_HaloSprite, 0, 15, 15.0, 2.0, 0.0, {255, 0, 0, 255}, 10, 0);
+  TE_SendToAll();  // Применяем
+  pos[2] = pos[2] + 5.0;
+  TE_SetupBeamRingPoint(pos, 38.0, 38.1, g_BeamSprite, g_HaloSprite, 0, 15, 15.0, 2.0, 0.0, {255, 0, 0, 255}, 10, 0);
+  TE_SendToAll();  // Применяем
+  pos[2] = pos[2] + 5.0;
+  TE_SetupBeamRingPoint(pos, 33.0, 33.1, g_BeamSprite, g_HaloSprite, 0, 15, 15.0, 2.0, 0.0, {255, 0, 0, 255}, 10, 0);
+  TE_SendToAll();  // Применяем
+  pos[2] = pos[2] + 5.0;
+  TE_SetupBeamRingPoint(pos, 28.0, 28.1, g_BeamSprite, g_HaloSprite, 0, 15, 15.0, 2.0, 0.0, {255, 0, 0, 255}, 10, 0);
+  TE_SendToAll();  // Применяем
+  pos[2] = pos[2] + 5.0;
+  TE_SetupBeamRingPoint(pos, 23.0, 23.1, g_BeamSprite, g_HaloSprite, 0, 15, 15.0, 2.0, 0.0, {255, 0, 0, 255}, 10, 0);
+  TE_SendToAll();  // Применяем
+  pos[2] = pos[2] + 5.0;
+  TE_SetupBeamRingPoint(pos, 18.0, 18.1, g_BeamSprite, g_HaloSprite, 0, 15, 15.0, 2.0, 0.0, {255, 0, 0, 255}, 10, 0);
+  TE_SendToAll();  // Применяем
+  pos[2] = pos[2] + 5.0;
+  TE_SetupBeamRingPoint(pos, 13.0, 13.1, g_BeamSprite, g_HaloSprite, 0, 15, 15.0, 2.0, 0.0, {255, 0, 0, 255}, 10, 0);
+  TE_SendToAll();  // Применяем
+  pos[2] = pos[2] + 5.0;
+  TE_SetupBeamRingPoint(pos, 8.0, 8.1, g_BeamSprite, g_HaloSprite, 0, 15, 15.0, 2.0, 0.0, {255, 0, 0, 255}, 10, 0);
+  TE_SendToAll();  // Применяем
+  pos[2] = pos[2] + 5.0;
+  TE_SetupBeamRingPoint(pos, 3.0, 3.1, g_BeamSprite, g_HaloSprite, 0, 15, 15.0, 2.0, 0.0, {255, 0, 0, 255}, 10, 0); //Средний маяк с минимальным диаметром (3.0) и средней высотой
+  TE_SendToAll();  // Применяем
+  pos[2] = pos[2] + 5.0;
+  TE_SetupBeamRingPoint(pos, 8.0, 8.1, g_BeamSprite, g_HaloSprite, 0, 15, 15.0, 2.0, 0.0, {255, 0, 0, 255}, 10, 0);
+  TE_SendToAll();  // Применяем
+  pos[2] = pos[2] + 5.0;
+  TE_SetupBeamRingPoint(pos, 13.0, 13.1, g_BeamSprite, g_HaloSprite, 0, 15, 15.0, 2.0, 0.0, {255, 0, 0, 255}, 10, 0);
+  TE_SendToAll();  // Применяем
+  pos[2] = pos[2] + 5.0;
+  TE_SetupBeamRingPoint(pos, 18.0, 18.1, g_BeamSprite, g_HaloSprite, 0, 15, 15.0, 2.0, 0.0, {255, 0, 0, 255}, 10, 0);
+  TE_SendToAll();  // Применяем
+  pos[2] = pos[2] + 5.0;
+  TE_SetupBeamRingPoint(pos, 23.0, 23.1, g_BeamSprite, g_HaloSprite, 0, 15, 15.0, 2.0, 0.0, {255, 0, 0, 255}, 10, 0);
+  TE_SendToAll();  // Применяем
+  pos[2] = pos[2] + 5.0;
+  TE_SetupBeamRingPoint(pos, 28.0, 28.1, g_BeamSprite, g_HaloSprite, 0, 15, 15.0, 2.0, 0.0, {255, 0, 0, 255}, 10, 0);
+  TE_SendToAll();  // Применяем
+  pos[2] = pos[2] + 5.0;
+  TE_SetupBeamRingPoint(pos, 33.0, 33.1, g_BeamSprite, g_HaloSprite, 0, 15, 15.0, 2.0, 0.0, {255, 0, 0, 255}, 10, 0);
+  TE_SendToAll();  // Применяем
+  pos[2] = pos[2] + 5.0;
+  TE_SetupBeamRingPoint(pos, 38.0, 38.1, g_BeamSprite, g_HaloSprite, 0, 15, 15.0, 2.0, 0.0, {255, 0, 0, 255}, 10, 0);
+  TE_SendToAll();  // Применяем
+  pos[2] = pos[2] + 5.0;
+  TE_SetupBeamRingPoint(pos, 43.0, 43.1, g_BeamSprite, g_HaloSprite, 0, 15, 15.0, 2.0, 0.0, {255, 0, 0, 255}, 10, 0);
+  TE_SendToAll();  // Применяем
+  pos[2] = pos[2] + 5.0;
+  TE_SetupBeamRingPoint(pos, 48.0, 48.1, g_BeamSprite, g_HaloSprite, 0, 15, 15.0, 2.0, 0.0, {255, 0, 0, 255}, 10, 0);
+  TE_SendToAll();  // Применяем
+  pos[2] = pos[2] + 5.0;
+  TE_SetupBeamRingPoint(pos, 53.0, 53.1, g_BeamSprite, g_HaloSprite, 0, 15, 15.0, 2.0, 0.0, {255, 0, 0, 255}, 10, 0);
+  TE_SendToAll();  // Применяем
+  pos[2] = pos[2] + 5.0;
+  TE_SetupBeamRingPoint(pos, 58.0, 58.1, g_BeamSprite, g_HaloSprite, 0, 15, 15.0, 2.0, 0.0, {255, 0, 0, 255}, 10, 0);
+  TE_SendToAll();  // Применяем
+  pos[2] = pos[2] + 5.0;
+  TE_SetupBeamRingPoint(pos, 63.0, 63.1, g_BeamSprite, g_HaloSprite, 0, 15, 15.0, 2.0, 0.0, {255, 0, 0, 255}, 10, 0); // Последний маяк с максимальным диаметрои (63.0) и высотой.
+  TE_SendToAll();  // Применяем
+  return Plugin_Handled;
+}
+
+
+
+public Action:Sphere(client, args) // Сфера
+{
+  new Float:pos[3];
+  wS_GetLookPos(client, pos); //Будем создавать через каждые 6 единиц высоты статичный (не двигающийся) маяк.
+ // Он будет жить 15.0 секунд. Т.к. сфера описывается квадратичной функцией, то каждый следующий диаметр будет больше предыдущего на половину прироста. Показываю на примере
+  TE_SetupBeamRingPoint(pos, 12.0, 12.1, g_BeamSprite, g_HaloSprite, 0, 15, 15.0, 1.0, 0.0, {255, 0, 0, 255}, 10, 0);  //Это нижняя точка/маяк. Его я выбрал сам. Просто, чтобы 
+  TE_SendToAll();  // Применяем                                                                                  //красиво смотрелся. Вот сейчас внимание.
+  pos[2] = pos[2] + 6;
+  TE_SetupBeamRingPoint(pos, 43.0, 43.1, g_BeamSprite, g_HaloSprite, 0, 15, 15.0, 1.0, 0.0, {255, 0, 0, 255}, 10, 0);// Я взял прирост диаметра = 20.0 единиц
+  TE_SendToAll();  // Применяем                                                                                // Диаметр 2 маяка взял 43.0 (сам взял).
+  pos[2] = pos[2] + 6;
+  TE_SetupBeamRingPoint(pos, 63.0, 63.1, g_BeamSprite, g_HaloSprite, 0, 15, 15.0, 1.0, 0.0, {255, 0, 0, 255}, 10, 0); //Тогда диаметр 3 маяка будет = диаметру 2 маяка + прирост (43.0 + 20.0 = 63.0)
+  TE_SendToAll();  // Применяем                                                                                 //!!! После установки каждого маяка делите прирост на 2 !!!
+  pos[2] = pos[2] + 6;
+  TE_SetupBeamRingPoint(pos, 73.0, 73.1, g_BeamSprite, g_HaloSprite, 0, 15, 15.0, 1.0, 0.0, {255, 0, 0, 255}, 10, 0); //Диаметр 4 маяка будет = диаметр 3 маяка + прирост/2 = 63.0 + 10.0 = 73.0.  
+  TE_SendToAll();  // Применяем                                                                                   Думаю, принцип вы поняли.
+  pos[2] = pos[2] + 6;
+  TE_SetupBeamRingPoint(pos, 78.0, 78.1, g_BeamSprite, g_HaloSprite, 0, 15, 15.0, 1.0, 0.0, {255, 0, 0, 255}, 10, 0); //Примечание: делаем конечный диаметр по формуле: начальный диаметр + 0.1 ,
+  TE_SendToAll();  // Применяем                                                                                   Чтобы диаметры не сильно отличались и все работало.
+  pos[2] = pos[2] + 6;
+  TE_SetupBeamRingPoint(pos, 80.5, 80.6, g_BeamSprite, g_HaloSprite, 0, 15, 15.0, 1.0, 0.0, {255, 0, 0, 255}, 10, 0);
+  TE_SendToAll();  // Применяем
+  pos[2] = pos[2] + 6;
+  TE_SetupBeamRingPoint(pos, 81.75, 81.85, g_BeamSprite, g_HaloSprite, 0, 15, 15.0, 1.0, 0.0, {255, 0, 0, 255}, 10, 0); //Делать маяков Вы можете, сколько хотите. Я делал, пока прирост не стал = 1.25
+  TE_SendToAll();  // Применяем
+  pos[2] = pos[2] + 6;
+  TE_SetupBeamRingPoint(pos, 80.5, 80.6, g_BeamSprite, g_HaloSprite, 0, 15, 15.0, 1.0, 0.0, {255, 0, 0, 255}, 10, 0);//Тут уже идем в обратную сторону. Увеличиваем прирост вдвое и от предыдущего диаметра
+  TE_SendToAll();  // Применяем                                                                                //отнимаем прирост
+  pos[2] = pos[2] + 6;
+  TE_SetupBeamRingPoint(pos, 78.0, 78.1, g_BeamSprite, g_HaloSprite, 0, 15, 15.0, 1.0, 0.0, {255, 0, 0, 255}, 10, 0);
+  TE_SendToAll();  // Применяем
+  pos[2] = pos[2] + 6;                                                                                           //высоту я увеличивал на 6 единиц. Чем больше увеличение высоты, тем более вытянутым
+  TE_SetupBeamRingPoint(pos, 73.0, 73.1, g_BeamSprite, g_HaloSprite, 0, 15, 15.0, 1.0, 0.0, {255, 0, 0, 255}, 10, 0);//будет шар. ВНИМАНИЕ!!! Сферу можете увеличивать, увеличивая начальный прирост, =>
+  TE_SendToAll();  // Применяем                                                                                //считать все надо будет по новой. Увеличивая сферу, не забывайте увеличивать прирост 
+  pos[2] = pos[2] + 6;                                                                                          //высоты пропорционально увеличению прироста. Например, Вы увыеличили прирост с 20.0 (как было)
+  TE_SetupBeamRingPoint(pos, 63.0, 63.1, g_BeamSprite, g_HaloSprite, 0, 15, 15.0, 1.0, 0.0, {255, 0, 0, 255}, 10, 0);//до 40.0 (вдвое больше). Тогда прирост высоты должен увеличиться с 6 (было) до 12 (вдвое больше)
+  TE_SendToAll();  // Применяем
+  pos[2] = pos[2] + 6;
+  TE_SetupBeamRingPoint(pos, 43.0, 43.1, g_BeamSprite, g_HaloSprite, 0, 15, 15.0, 1.0, 0.0, {255, 0, 0, 255}, 10, 0);
+  TE_SendToAll();  // Применяем
+  pos[2] = pos[2] + 6;
+  TE_SetupBeamRingPoint(pos, 12.0, 12.1, g_BeamSprite, g_HaloSprite, 0, 15, 15.0, 1.0, 0.0, {255, 0, 0, 255}, 10, 0);  //Это верхний маяк. Его я тоже выбрал сам. Так смотрелось наиболее красиво для данного
+  TE_SendToAll();  // Применяем  
+return Plugin_Handled;  //размера сферы. Думаю, что объяснил понятно) Как мог)
+} 
+
+
+
+public Action:BrokeSphere(client, args) // Разрывающаяся Сфера. Делаю на примере сферы выше.
+{
+  wS_GetLookPos(client, bspos);  //Придумал интересный эффект разрыва сферы. Суть проста: Делаем сферу, потом на ее месте делаем новую сферу, но конечные диаметры маяков увеличиваем.
+  
+  savebspos = bspos[2]; // Сохраняем позицию высоты, чтобы создать разрыв на этом месте.
+  
+  TE_SetupBeamRingPoint(bspos, 12.0, 12.1, g_BeamSprite, g_HaloSprite, 0, 15, 5.0, 1.0, 0.0, {255, 0, 0, 255}, 5, 0); //Чтобы сфера как бы "разлеталась".
+  TE_SendToAll();  // Применяем                                                                                //Можно добавить эффект свечения (glow) в центр, если нужно)
+  bspos[2] = bspos[2] + 6;
+  TE_SetupBeamRingPoint(bspos, 43.0, 43.1, g_BeamSprite, g_HaloSprite, 0, 15, 5.0, 1.0, 0.0, {255, 0, 0, 255}, 5, 0); 
+  TE_SendToAll();  // Применяем                                                                                
+  bspos[2] = bspos[2] + 6;
+  TE_SetupBeamRingPoint(bspos, 63.0, 63.1, g_BeamSprite, g_HaloSprite, 0, 15, 5.0, 1.0, 0.0, {255, 0, 0, 255}, 5, 0);
+  TE_SendToAll();  // Применяем                                                                                 
+  bspos[2] = bspos[2] + 6;
+  TE_SetupBeamRingPoint(bspos, 73.0, 73.1, g_BeamSprite, g_HaloSprite, 0, 15, 5.0, 1.0, 0.0, {255, 0, 0, 255}, 5, 0); 
+  TE_SendToAll();  // Применяем                                                                                 
+  bspos[2] = bspos[2] + 6;
+  TE_SetupBeamRingPoint(bspos, 78.0, 78.1, g_BeamSprite, g_HaloSprite, 0, 15, 5.0, 1.0, 0.0, {255, 0, 0, 255}, 5, 0); 
+  TE_SendToAll();  // Применяем                                                                                   
+  bspos[2] = bspos[2] + 6;
+  TE_SetupBeamRingPoint(bspos, 80.5, 80.6, g_BeamSprite, g_HaloSprite, 0, 15, 5.0, 1.0, 0.0, {255, 0, 0, 255}, 5, 0);
+  TE_SendToAll();  // Применяем
+  bspos[2] = bspos[2] + 6;
+  TE_SetupBeamRingPoint(bspos, 81.75, 81.85, g_BeamSprite, g_HaloSprite, 0, 15, 5.0, 1.0, 0.0, {255, 0, 0, 255}, 5, 0);
+  TE_SendToAll();  // Применяем
+  bspos[2] = bspos[2] + 6;
+  TE_SetupBeamRingPoint(bspos, 80.5, 80.6, g_BeamSprite, g_HaloSprite, 0, 15, 5.0, 1.0, 0.0, {255, 0, 0, 255}, 5, 0);
+  TE_SendToAll();  // Применяем                                                                                
+  bspos[2] = bspos[2] + 6;
+  TE_SetupBeamRingPoint(bspos, 78.0, 78.1, g_BeamSprite, g_HaloSprite, 0, 15, 5.0, 1.0, 0.0, {255, 0, 0, 255}, 5, 0);
+  TE_SendToAll();  // Применяем
+  bspos[2] = bspos[2] + 6;                                                                                           
+  TE_SetupBeamRingPoint(bspos, 73.0, 73.1, g_BeamSprite, g_HaloSprite, 0, 15, 5.0, 1.0, 0.0, {255, 0, 0, 255}, 5, 0);
+  TE_SendToAll();  // Применяем                                                                                
+  bspos[2] = bspos[2] + 6;                                                                                          
+  TE_SetupBeamRingPoint(bspos, 63.0, 63.1, g_BeamSprite, g_HaloSprite, 0, 15, 5.0, 1.0, 0.0, {255, 0, 0, 255}, 5, 0);
+  TE_SendToAll();  // Применяем
+  bspos[2] = bspos[2] + 6;
+  TE_SetupBeamRingPoint(bspos, 43.0, 43.1, g_BeamSprite, g_HaloSprite, 0, 15, 5.0, 1.0, 0.0, {255, 0, 0, 255}, 5, 0);
+  TE_SendToAll();  // Применяем
+  bspos[2] = bspos[2] + 6;
+  TE_SetupBeamRingPoint(bspos, 12.0, 12.1, g_BeamSprite, g_HaloSprite, 0, 15, 5.0, 1.0, 0.0, {255, 0, 0, 255}, 5, 0); //Создали сферу. Создаем таймер на время действия сферы, чтобы поймать
+  TE_SendToAll();  // Применяем                                                                                //момент ее исчезновения.
+  CreateTimer(5.0, Broke, client);
+  return Plugin_Handled;
+} 
+
+
+
+public Action:Broke(Handle:timer, any:client) //По истечению таймера создаем новую сферу с увеличенным конечным диаметром
+{ 
+ bspos[2] = savebspos; //Восстанавливаем позицию высоты по сохраненной, чтобы создать сферу на этом же месте.
+  TE_SetupBeamRingPoint(bspos, 12.0, 500.1, g_BeamSprite, g_HaloSprite, 0, 15, 5.0, 1.0, 0.0, {255, 0, 0, 255}, 5, 0); //Чтобы сфера как бы "разлеталась".
+  TE_SendToAll();  // Применяем                                                                               
+  bspos[2] = bspos[2] + 6;
+  TE_SetupBeamRingPoint(bspos, 43.0, 531.1, g_BeamSprite, g_HaloSprite, 0, 15, 5.0, 1.0, 0.0, {255, 0, 0, 255}, 5, 0); // Важно сохранять разницу между диаметрами соседних маяков
+  TE_SendToAll();  // Применяем                                                                                 //Чтобы сфера не разлеталась однобоко.
+  bspos[2] = bspos[2] + 6;
+  TE_SetupBeamRingPoint(bspos, 63.0, 551.1, g_BeamSprite, g_HaloSprite, 0, 15, 5.0, 1.0, 0.0, {255, 0, 0, 255}, 5, 0);
+  TE_SendToAll();  // Применяем                                                                                 
+  bspos[2] = bspos[2] + 6;
+  TE_SetupBeamRingPoint(bspos, 73.0, 561.1, g_BeamSprite, g_HaloSprite, 0, 15, 5.0, 1.0, 0.0, {255, 0, 0, 255}, 5, 0); // По своему усмотрению можете побаловаться с амплитудой (0.0)
+  TE_SendToAll();  // Применяем                                                                                 
+  bspos[2] = bspos[2] + 6;
+  TE_SetupBeamRingPoint(bspos, 78.0, 566.1, g_BeamSprite, g_HaloSprite, 0, 15, 5.0, 1.0, 0.0, {255, 0, 0, 255}, 5, 0); 
+  TE_SendToAll();  // Применяем                                                                                   
+  bspos[2] = bspos[2] + 6;
+  TE_SetupBeamRingPoint(bspos, 80.5, 568.6, g_BeamSprite, g_HaloSprite, 0, 15, 5.0, 1.0, 0.0, {255, 0, 0, 255}, 5, 0);
+  TE_SendToAll();  // Применяем
+  bspos[2] = bspos[2] + 6;
+  TE_SetupBeamRingPoint(bspos, 81.75, 569.85, g_BeamSprite, g_HaloSprite, 0, 15, 5.0, 1.0, 0.0, {255, 0, 0, 255}, 5, 0);
+  TE_SendToAll();  // Применяем
+  bspos[2] = bspos[2] + 6;
+  TE_SetupBeamRingPoint(bspos, 80.5, 568.6, g_BeamSprite, g_HaloSprite, 0, 15, 5.0, 1.0, 0.0, {255, 0, 0, 255}, 5, 0);
+  TE_SendToAll();  // Применяем                                                                                
+  bspos[2] = bspos[2] + 6;
+  TE_SetupBeamRingPoint(bspos, 78.0, 566.1, g_BeamSprite, g_HaloSprite, 0, 15, 5.0, 1.0, 0.0, {255, 0, 0, 255}, 5, 0);
+  TE_SendToAll();  // Применяем
+  bspos[2] = bspos[2] + 6;                                                                                          
+  TE_SetupBeamRingPoint(bspos, 73.0, 561.1, g_BeamSprite, g_HaloSprite, 0, 15, 5.0, 1.0, 0.0, {255, 0, 0, 255}, 5, 0);
+  TE_SendToAll();  // Применяем                                                                                
+  bspos[2] = bspos[2] + 6;                                                                                         
+  TE_SetupBeamRingPoint(bspos, 63.0, 551.1, g_BeamSprite, g_HaloSprite, 0, 15, 5.0, 1.0, 0.0, {255, 0, 0, 255}, 5, 0);
+  TE_SendToAll();  // Применяем
+  bspos[2] = bspos[2] + 6;
+  TE_SetupBeamRingPoint(bspos, 43.0, 531.1, g_BeamSprite, g_HaloSprite, 0, 15, 5.0, 1.0, 0.0, {255, 0, 0, 255}, 5, 0);
+  TE_SendToAll();  // Применяем
+  bspos[2] = bspos[2] + 6;
+  TE_SetupBeamRingPoint(bspos, 12.0, 500.1, g_BeamSprite, g_HaloSprite, 0, 15, 5.0, 1.0, 0.0, {255, 0, 0, 255}, 5, 0);
+  
+  bspos[0] = 0.0; //зануляем все позиции (на всякий случай)
+  bspos[1] = 0.0;
+  bspos[2] = 0.0;
+  savebspos = 0.0;
+  return Plugin_Handled;
+}
+
+
+
+public Action:Lightning(client, args) //Молния
+{
+  new Float:pos[3];
+  wS_GetLookPos(client, pos);
+  
+
+  new randomx = GetRandomInt(-500, 500);  // Получаем случайные позиции Х и У, чтобы молния не была однобокой
+  new randomy = GetRandomInt(-500, 500); 
+
+  //Получаем верхнюю точку молнии. Она будет рандомная по Х и У и выше нижней позиции на 800, чтобы молния била сверху вниз
+  new Float:startpos[3]; 
+  startpos[0] = pos[0] + randomx; 
+  startpos[1] = pos[1] + randomy; 
+  startpos[2] = pos[2] + 800; 
+
+  //Делаем  цвет молнии (у нас синий)
+  new color[4] = {0, 0, 255, 255}; 
+
+  //Делаем направление искр (к началу координат карты)
+  new Float:dir[3] = {0.0, 0.0, 0.0}; 
+
+  TE_SetupBeamPoints(startpos, pos, g_LightningSprite, 0, 0, 0, 0.2, 20.0, 10.0, 0, 2.0, color, 3); //Делаем лазер с амплитудой в 2 единицы
+  TE_SendToAll();  // Применяем
+
+    TE_SetupBeamPoints(startpos, pos, g_LightningSprite, 0, 0, 0, 0.2, 10.0, 5.0, 0, 1.0, {255, 255, 255, 255}, 3); //Делаем второй лазер (белый) с амплитудой в 1 единицу
+  TE_SendToAll();  // Применяем                                                                               //И в 2 раза уже, чтобы молния смотрелась органично
+  
+  TE_SetupSparks(pos, dir, 5000, 1000);  //Делаем искры
+  TE_SendToAll();  // Применяем
+
+  TE_SetupEnergySplash(pos, dir, false); //Делаем всплеск энергии
+  TE_SendToAll();  // Применяем
+
+  TE_SetupSmoke(pos, g_SteamSprite, 5.0, 10); //Делаем дым
+  TE_SendToAll();  // Применяем
+  
+  //Можно добавить маяк, если хотите. TE_SetupBeamRingPoint(pos, 10.0, 70.0, g_BeamSprite, g_HaloSprite, 0, 15, 15.0, 2.0, 0.0, {255, 255, 0, 255}, 10, 0);
+  //                                  TE_SendToAll();  
+  return Plugin_Handled;
+}
+
+
+
+public Action:Cell(client, args) //Восьмигранная клетка
+{
+      new Float:center[3], Float:one[3], Float:two[3], Float:three[3], Float:four[3], Float:five[3], Float:six[3], Float:seven[3], Float:eight[3]; // нижние точки
+	  
+	  //Создаем 8 переменных для 8 точек. Я не использовал цикл, потому что мне нужна каждая позиция отдельно, чтобы их потом связать линиями.
+	  
+    wS_GetLookPos(client, center);  
+       
+    new Num      = 8; // Кол-во точек вокруг заданной позиции 
+	
+    new Degrees = 360;  //Градусов в круге
+    new Coeff    = 0;  //коэффициент
+    new Mul      = 50;  
+    
+    new Float:oneh[3], Float:twoh[3], Float:threeh[3], Float:fourh[3], Float:fiveh[3], Float:sixh[3], Float:sevenh[3], Float:eighth[3]; //Создаем переменные верхних позиций
+	
+	new Float:point;
+	
+     point = DegToRad(float(0 * (Degrees / Num) + Coeff)); 
+      
+     //вычисляем верхнюю первую точку
+	 
+     oneh[0] = center[0] + Sine(point) * Mul;  //Честно говоря, не знаю, как он вычисляет. В геометрии не силен. Спросите у хвостега, это его код.
+     oneh[1] = center[1] + Cosine(point) * Mul; 
+     oneh[2] = center[2] + 100.0; // 50.0 - Высота клетки 
+	 
+	 one[0] = oneh[0]; //Получаем нижнюю точку
+	 one[1] = oneh[1];
+	 one[2] = center[2]; //Т.к. она нижняя, то выысота будет, как у центра.
+	 
+	 TE_SetupBeamPoints(one, oneh, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30); //Создаем вертикальные лазеры, соединяющие 2 наши точки.
+	 TE_SendToAll();
+	  
+
+	 
+	 point = DegToRad(float(1 * (Degrees / Num) + Coeff)); 
+	 
+     	 //вычисляем 2 точку
+		 
+     twoh[0] = center[0] + Sine(point) * Mul; 
+     twoh[1] = center[1] + Cosine(point) * Mul; 
+     twoh[2] = center[2] + 100.0; 
+	 
+	 two[0] = twoh[0];
+	 two[1] = twoh[1];
+	 two[2] = center[2];
+	 
+	 TE_SetupBeamPoints(two, twoh, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30); //Создаем вертикальные лазеры, соединяющие 2 наши точки.
+	 TE_SendToAll();
+	 
+	 
+	 point = DegToRad(float(2 * (Degrees / Num) + Coeff)); 
+        
+	 //вычисляем 3 точку 	
+		
+     threeh[0] = center[0] + Sine(point) * Mul; 
+     threeh[1] = center[1] + Cosine(point) * Mul; 
+     threeh[2] = center[2] + 100.0; 
+	 
+	 three[0] = threeh[0];
+	 three[1] = threeh[1];
+	 three[2] = center[2];
+	 
+	 TE_SetupBeamPoints(three, threeh, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 
+	 point = DegToRad(float(3 * (Degrees / Num) + Coeff)); 
+        
+		//вычисляем 4 точку
+		
+     fourh[0] = center[0] + Sine(point) * Mul; 
+     fourh[1] = center[1] + Cosine(point) * Mul; 
+     fourh[2] = center[2] + 100.0; 
+	 
+	 four[0] = fourh[0];
+	 four[1] = fourh[1];
+	 four[2] = center[2];
+	 
+	 TE_SetupBeamPoints(four, fourh, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 
+	 
+	 
+	 point = DegToRad(float(4 * (Degrees / Num) + Coeff)); 
+        
+		//вычисляем 5 точку
+		
+     fiveh[0] = center[0] + Sine(point) * Mul; 
+     fiveh[1] = center[1] + Cosine(point) * Mul; 
+     fiveh[2] = center[2] + 100.0; 
+	 
+	 five[0] = fiveh[0];
+	 five[1] = fiveh[1];
+	 five[2] = center[2];
+	 
+	 TE_SetupBeamPoints(five, fiveh, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 
+	 
+	 point = DegToRad(float(5 * (Degrees / Num) + Coeff)); 
+        
+		//вычисляем 6 точку
+		
+     sixh[0] = center[0] + Sine(point) * Mul; 
+     sixh[1] = center[1] + Cosine(point) * Mul; 
+     sixh[2] = center[2] + 100.0; 
+	 
+	 six[0] = sixh[0];
+	 six[1] = sixh[1];
+	 six[2] = center[2];
+	 
+	 TE_SetupBeamPoints(six, sixh, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 
+	 
+	 point = DegToRad(float(6 * (Degrees / Num) + Coeff)); 
+        
+		//вычисляем 7 точку
+		
+     sevenh[0] = center[0] + Sine(point) * Mul; 
+     sevenh[1] = center[1] + Cosine(point) * Mul; 
+     sevenh[2] = center[2] + 100.0; 
+	 
+	 seven[0] = sevenh[0];
+	 seven[1] = sevenh[1];
+	 seven[2] = center[2];
+	 
+	 TE_SetupBeamPoints(seven, sevenh, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 
+	 
+	 
+	 point = DegToRad(float(7 * (Degrees / Num) + Coeff));
+        
+		 //вычисляем 8 точку
+		
+     eighth[0] = center[0] + Sine(point) * Mul; 
+     eighth[1] = center[1] + Cosine(point) * Mul; 
+     eighth[2] = center[2] + 100.0; 
+	 
+	 eight[0] = eighth[0];
+	 eight[1] = eighth[1];
+	 eight[2] = center[2];
+	 
+	 TE_SetupBeamPoints(eight, eighth, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 
+	 //Соединяем верхние и нижние точки друг с другом, чтобы получилась "крыша"
+	 TE_SetupBeamPoints(one, two, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);  //Соединяем нижние точки по кругу: 1 со 2, 2 с 3, 3 с 4, ... , 8 с 1  
+	 TE_SendToAll();
+	 TE_SetupBeamPoints(two, three, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 TE_SetupBeamPoints(three, four, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 TE_SetupBeamPoints(four, five, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 TE_SetupBeamPoints(five, six, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 TE_SetupBeamPoints(six, seven, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 TE_SetupBeamPoints(seven, eight, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 TE_SetupBeamPoints(eight, one, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 
+	 TE_SetupBeamPoints(oneh, twoh, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);//Соединяем верхние точки по кругу: 1 со 2, 2 с 3, 3 с 4, ... , 8 с 1  
+	 TE_SendToAll();
+	 TE_SetupBeamPoints(twoh, threeh, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 TE_SetupBeamPoints(threeh, fourh, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 TE_SetupBeamPoints(fourh, fiveh, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 TE_SetupBeamPoints(fiveh, sixh, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 TE_SetupBeamPoints(sixh, sevenh, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 TE_SetupBeamPoints(sevenh, eighth, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 TE_SetupBeamPoints(eighth, oneh, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 
+	 //Для красоты я соединил между собой верхние точки, чтобы получилась своеобразная "крыша". Для того, чтобы понять, как соединять, нарисуйте на листочке.
+	 //Соединяем 1 точку со всеми, кроме 2 и 8 (т.к. она уже соединена с ними)
+	 TE_SetupBeamPoints(oneh, threeh, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 TE_SetupBeamPoints(oneh, fourh, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 TE_SetupBeamPoints(oneh, fiveh, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 TE_SetupBeamPoints(oneh, fiveh, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 TE_SetupBeamPoints(oneh, sixh, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 TE_SetupBeamPoints(oneh, sevenh, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 //Соединяем 2 точку со всеми, кроме 1 и 3.
+	 TE_SetupBeamPoints(twoh, fourh, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 TE_SetupBeamPoints(twoh, fiveh, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 TE_SetupBeamPoints(twoh, sixh, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 TE_SetupBeamPoints(twoh, sevenh, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 TE_SetupBeamPoints(twoh, eighth, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 //Соединяем 3 точку со всеми, кроме 1, 2 и 4.
+	 TE_SetupBeamPoints(threeh, fiveh, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 TE_SetupBeamPoints(threeh, sixh, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 TE_SetupBeamPoints(threeh, sevenh, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 TE_SetupBeamPoints(threeh, eighth, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 //Соединяем 4 точку с 6, 7 и 8 (т.к. со всеми остальными она уже соединена).
+	 TE_SetupBeamPoints(fourh, sixh, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 TE_SetupBeamPoints(fourh, sevenh, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 TE_SetupBeamPoints(fourh, eighth, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 //Соединяем 5 точку с 7 и 8 по той же причине.
+	 TE_SetupBeamPoints(fiveh, sevenh, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 TE_SetupBeamPoints(fiveh, eighth, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 //Соединяем 6 точку с 8.
+	 TE_SetupBeamPoints(sixh, eighth, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 //Вот и крыша готова!
+	 //Для того, чтобы уменьшить количество углов, уменьшайте, соответственно количество вычислений точек. Я вычислял 8 раз (каждую точку по разу), на 6-тигранник - 6 раз и т.д.
+     //Думаю, поймете, как это делать)
+	 //Большое спасибо хвостегу за эту замечательную фигуру! Использовался его метод нахождения точек на окружности.
+	 return Plugin_Handled;
+} 
+  
+public Action:Cube(client, args) // Куб с эффектами
+{
+  new Float:center[3];
+  wS_GetLookPos(client, center);
+  
+  new Float:one[3], Float:two[3], Float:three[3], Float:four[3];
+  new Float:oneh[3], Float:twoh[3], Float:threeh[3], Float:fourh[3];
+  new Num = 4; // Кол-во точек вокруг заданной позиции 
+	
+    new Degrees = 360;  //Градусов в круге
+    new Coeff    = 0;  //коэффициент
+    new Mul      = 50;  
+	
+	new Float:point;
+	
+     point = DegToRad(float(0 * (Degrees / Num) + Coeff)); 
+      
+     //вычисляем верхнюю первую точку
+	 
+     oneh[0] = center[0] + Sine(point) * Mul;  //Честно говоря, не знаю, как он вычисляет. В геометрии не силен. Спросите у хвостега, это его код.
+     oneh[1] = center[1] + Cosine(point) * Mul; 
+     oneh[2] = center[2] + 100.0; // 50.0 - Высота клетки 
+	 
+	 one[0] = oneh[0]; //Получаем нижнюю точку
+	 one[1] = oneh[1];
+	 one[2] = center[2]; //Т.к. она нижняя, то выысота будет, как у центра.
+	 
+	 TE_SetupBeamPoints(one, oneh, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30); //Создаем вертикальные лазеры, соединяющие 2 наши точки.
+	 TE_SendToAll();
+	  
+
+	 
+	 point = DegToRad(float(1 * (Degrees / Num) + Coeff)); 
+	 
+     	 //вычисляем 2 точку
+		 
+     twoh[0] = center[0] + Sine(point) * Mul; 
+     twoh[1] = center[1] + Cosine(point) * Mul; 
+     twoh[2] = center[2] + 100.0; 
+	 
+	 two[0] = twoh[0];
+	 two[1] = twoh[1];
+	 two[2] = center[2];
+	 
+	 TE_SetupBeamPoints(two, twoh, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30); //Создаем вертикальные лазеры, соединяющие 2 наши точки.
+	 TE_SendToAll();
+	 
+	 
+	 point = DegToRad(float(2 * (Degrees / Num) + Coeff)); 
+        
+	 //вычисляем 3 точку 	
+		
+     threeh[0] = center[0] + Sine(point) * Mul; 
+     threeh[1] = center[1] + Cosine(point) * Mul; 
+     threeh[2] = center[2] + 100.0; 
+	 
+	 three[0] = threeh[0];
+	 three[1] = threeh[1];
+	 three[2] = center[2];
+	 
+	 TE_SetupBeamPoints(three, threeh, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 
+	 point = DegToRad(float(3 * (Degrees / Num) + Coeff)); 
+        
+		//вычисляем 4 точку
+		
+     fourh[0] = center[0] + Sine(point) * Mul; 
+     fourh[1] = center[1] + Cosine(point) * Mul; 
+     fourh[2] = center[2] + 100.0; 
+	 
+	 four[0] = fourh[0];
+	 four[1] = fourh[1];
+	 four[2] = center[2];
+	 
+	 TE_SetupBeamPoints(four, fourh, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 
+	 TE_SetupBeamPoints(one, two, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);  //Соединяем нижние точки по кругу: 1 со 2, 2 с 3, 3 с 4, 4 с 1. 
+	 TE_SendToAll();
+	 TE_SetupBeamPoints(two, three, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 TE_SetupBeamPoints(three, four, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 TE_SetupBeamPoints(four, one, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 
+	 TE_SetupBeamPoints(oneh, twoh, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);  //Соединяем нижние точки по кругу: 1 со 2, 2 с 3, 3 с 4,4 c 1.  
+	 TE_SendToAll();
+	 TE_SetupBeamPoints(twoh, threeh, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 TE_SetupBeamPoints(threeh, fourh, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 TE_SetupBeamPoints(fourh, oneh, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 
+	 //Соединяем точки боковых граней между собой крестом.
+	 TE_SetupBeamPoints(oneh, two, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);  //Соединяем нижние точки по кругу: 1 со 2, 2 с 3, 3 с 4,4 c 1.  
+	 TE_SendToAll();
+	 TE_SetupBeamPoints(twoh, one, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 TE_SetupBeamPoints(twoh, three, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 TE_SetupBeamPoints(threeh, two, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 TE_SetupBeamPoints(threeh, four, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 TE_SetupBeamPoints(fourh, three, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 TE_SetupBeamPoints(fourh, one, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 TE_SetupBeamPoints(oneh, four, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 //Теперь верхние точки (получается крест)
+	 TE_SetupBeamPoints(oneh, threeh, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 TE_SetupBeamPoints(twoh, fourh, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 //И нижние тоже крестом
+	 TE_SetupBeamPoints(one, three, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 TE_SetupBeamPoints(two, four, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 //Кому нужно, можно внутри тоже все соединить.
+	 TE_SetupBeamPoints(oneh, three, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 TE_SetupBeamPoints(twoh, four, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 TE_SetupBeamPoints(one, threeh, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 TE_SetupBeamPoints(two, fourh, g_Laser,0,0,0,10.0,1.0,1.0,10,0.5,{0, 100, 255, 255},30);
+	 TE_SendToAll();
+	 
+	 TE_SetupSparks(oneh, one, 500, 10); // Создаем искры по вертикальным линиям
+	 TE_SendToAll();
+	 TE_SetupSparks(twoh, two, 500, 10); 
+	 TE_SendToAll();
+	 TE_SetupSparks(threeh, three, 500, 10); 
+	 TE_SendToAll();
+	 TE_SetupSparks(fourh, four, 500, 10); 
+	 TE_SendToAll();
+	 
+	 center[2] = center[2] + 40.0;
+	 TE_SetupGlowSprite(center, g_Glow, 5.0, 5.0, 20); //Делаем свечение в центре
+	 TE_SendToAll();
+	 return Plugin_Handled;
+}
+
+public Action:Atom(client, args) // Эффект атома. Для него нам понадобятся 2 трейла и 2 вращения.
+{
+  new Float:center[3];
+  
+  wS_GetLookPos(client, center); 
+  center[2] += 50;
+  
+ new rt_i = CreateEntityByName("func_rotating"); //Создаем первый объект вращения (вокруг него могут вращаться другие объекты)
+    if (rt_i < 1) 
+    { 
+        LogError("func_rotating error"); 
+        return; 
+    } 
+    new sp_i = CreateEntityByName("env_spritetrail");  //И первый трейл тоже создаем
+    if (sp_i < 1) 
+    { 
+        AcceptEntityInput(rt_i, "Kill"); 
+        LogError("env_spritetrail error"); 
+        return; 
+    } 
+    // Первый вращательный объект 
+    DispatchKeyValueVector(rt_i, "origin", center);  //Спавним его в точке нашего взора
+    DispatchKeyValue(rt_i, "targetname", "x_rotating");  // Даем ему имя "x_rotating", чтобы потом привязать к нему трейл
+    DispatchKeyValue(rt_i, "renderfx", "0");  //
+    DispatchKeyValue(rt_i, "rendermode", "0"); //  Прозрачен
+    DispatchKeyValue(rt_i, "renderamt", "255"); //
+    DispatchKeyValue(rt_i, "rendercolor", "255 255 255"); 
+    DispatchKeyValue(rt_i, "maxspeed", "200");  //Скорость вращения 200 ед/сек. Можете изменить
+    DispatchKeyValue(rt_i, "friction", "20");  //Трение, не знаю, зачем надо)
+    DispatchKeyValue(rt_i, "dmg", "0");  //Урона не наносит
+    DispatchKeyValue(rt_i, "solid", "0"); //Прозрачен
+    DispatchKeyValue(rt_i, "spawnflags", "64"); //Значит, что он испольуемый. Работает. Без этого работать не будет!
+	DispatchSpawn(rt_i); //Создаем наш объект.
+
+	
+	// Второй вращательный объект 
+	new rt_two = CreateEntityByName("func_rotating"); //Точно также создаем второе вращение по вертикали
+	DispatchKeyValueVector(rt_two, "origin", center); 
+    DispatchKeyValue(rt_two, "targetname", "x_rotating_two"); 
+    DispatchKeyValue(rt_two, "renderfx", "0"); 
+    DispatchKeyValue(rt_two, "rendermode", "0"); 
+    DispatchKeyValue(rt_two, "renderamt", "255"); 
+    DispatchKeyValue(rt_two, "rendercolor", "255 255 255"); 
+    DispatchKeyValue(rt_two, "maxspeed", "200"); 
+    DispatchKeyValue(rt_two, "friction", "20"); 
+    DispatchKeyValue(rt_two, "dmg", "0"); 
+    DispatchKeyValue(rt_two, "solid", "0");	
+    DispatchKeyValue(rt_two, "spawnflags", "72"); //Внимание! 64 - используемый, 8 - по оси Y. 64+8 = 72. Складываются свойства.
+    DispatchSpawn(rt_two); 
+	
+    // Первый трейл 
+    center[0] += 35.0; 
+    DispatchKeyValueVector(sp_i, "origin", center);	 //Спавним в радиусе 35 единиц от вращения. Можете изменить.
+    DispatchKeyValue(sp_i, "lifetime", "1");
+    DispatchKeyValue(sp_i, "startwidth", "1.0"); //Начальная ширина 1.0
+    DispatchKeyValue(sp_i, "endwidth", "1.0");  //Конечная тоже
+    DispatchKeyValue(sp_i, "spritename", "materials/sprites/laserbeam.vmt");  //Спрайт такой. Заранее прекэшнутый.
+    DispatchKeyValue(sp_i, "rendermode", "1"); //Видимый
+    DispatchKeyValue(sp_i, "rendercolor", "255 0 0"); //Красный
+    DispatchKeyValue(sp_i, "renderamt", "255");  //Полностью непрозрачен
+    DispatchSpawn(sp_i);  //Спавним
+    SetVariantString("x_rotating");  //Указываем имя первого вращения
+    AcceptEntityInput(sp_i, "SetParent"); //Привязываем к нему
+    AcceptEntityInput(sp_i, "ShowSprite");  //Показываем его всем
+    AcceptEntityInput(rt_i, "Start");  //Запускаем первое вращение. И ура! Крутится
+	//Второй трейл
+	new sp_two = CreateEntityByName("env_spritetrail"); //Создаем второй трейл также
+	DispatchKeyValueVector(sp_two, "origin", center);	
+    DispatchKeyValue(sp_two, "lifetime", "1"); 
+    DispatchKeyValue(sp_two, "startwidth", "1.0"); 
+    DispatchKeyValue(sp_two, "endwidth", "1"); 
+    DispatchKeyValue(sp_two, "spritename", "materials/sprites/laserbeam.vmt"); 
+    DispatchKeyValue(sp_two, "rendermode", "1"); 
+    DispatchKeyValue(sp_two, "rendercolor", "0 255 0"); 
+    DispatchKeyValue(sp_two, "renderamt", "255"); 
+    DispatchSpawn(sp_two); 
+    SetVariantString("x_rotating_two"); //Только привязываем ко второму вращению (по оси Y)
+    AcceptEntityInput(sp_two, "SetParent");  //Привязали
+    AcceptEntityInput(sp_two, "ShowSprite");  //Показываем
+    AcceptEntityInput(rt_two, "Start"); //Запуск второго вращения.
+
+     
+}  
+
+public Action:FireBall(client, args) // Огненный шар
+{
+  new Float:cpos[3], Float:apos[3];
+  new Float:dist, Float:epos[3];
+  
+  wS_GetLookPos(client, epos);
+  GetClientEyeAngles(client, apos);
+  new String:MovelinearName[25];
+  GetClientEyePosition(client, cpos);
+  
+  dist = GetDistance(cpos, epos); //Получаем дистанцию между точкой прицела и нашей головой
+  
+  new ent_move = CreateEntityByName("func_movelinear"); //Создаем прямолинейное движение
+  Format(MovelinearName,	25,			"mvlnr_%d",			ent_move); 
+		DispatchKeyValue(ent_move,			"targetname",		MovelinearName); //Даем ему имя, чтобы прнивязать к нему наш шар
+		
+		DispatchKeyValueVector(ent_move,	"origin", cpos); //Создаем в точке головы
+		DispatchKeyValueVector(ent_move,	"movedir", apos); //И направляем его движение в сторону, куда мы смотрим
+		DispatchKeyValueFloat(ent_move,		"BlockDamage",		0.0); //Не блочится
+		DispatchKeyValueFloat(ent_move,		"StartPosition",	0.0); 
+		DispatchKeyValueFloat(ent_move,		"MoveDistance",		dist); //Делаем дистанцию движения равную расстоянию между точек
+		SetEntPropFloat(ent_move,			Prop_Data,			"m_flSpeed",	500.0); // Задаем ему скорость (500 ед/сек)
+		DispatchKeyValue(ent_move,			"spawnflags",		"8"); //Применяем скорость
+		DispatchSpawn(ent_move); //Создаем движение
+		
+		new ent_fire = CreateEntityByName("env_fire_trail"); //Вот тут уже создаем шар
+		DispatchKeyValueVector(ent_fire,	"origin",			cpos); //Создаем в точке головы
+		DispatchKeyValue(ent_fire,			"solid",			"0"); //Будет проходить через объектов
+		DispatchSpawn(ent_fire); //Спавним наш шар.
+		SetVariantString(MovelinearName); // Задаем привязку к другому объекту ("родителю"). В нашем случае объект прямолинейного движения
+		AcceptEntityInput(ent_fire,			"SetParent");  //Применяем к нему родителя.
+        AcceptEntityInput(ent_move,			"Start"); //Запускаем прямолинейное движение
+		AcceptEntityInput(ent_move,			"Open");  //Задаем событие, когда шар дошел до нашей точки (прошел дистанцию)
+		HookSingleEntityOutput(ent_move,	"OnFullyOpen",		OnFullyOpen); //Хватае событие, когда шар уже прошел дистанцию--
+return Plugin_Handled;//                                                                                                   |
+} //                                                                                                                      |
+//                                                                                                                       |
+//Дополнительные функции                                                                                                |   
+//                                                                                                                     |
+stock Float:GetDistance(Float:pos1[3], Float:pos2[3]) //получает дистанцию между двух точек. (В 2д пространстве).       |
+{  //                                                                                                                 |
+      return SquareRoot( Pow(pos2[0] - pos1[0], 2.0) + Pow(pos2[1] - pos1[1], 2.0) ); //                                 |
+}  //                                                                                                                |
+//                                                                                                                   |
+public OnFullyOpen(const String:output[],	caller, activator, Float:delay) //        <------------------------------|
+{
+  AcceptEntityInput(caller, "Kill"); //Когда шар прошел нашу дистанцию, удаляем его.
+}
+
+public bool:wS_GetLookPos_Filter(ent, mask, any:client)  //Проверка, что игрок не смотрит сам на себя.
+{ 
+      return client != ent; 
+}
+
+wS_GetLookPos(client, Float:wS_Pos[3])  // Получение позиции прицела
+{ 
+     decl Float:EyePosition[3], Float:EyeAngles[3], Handle:h_trace; 
+     GetClientEyePosition(client, EyePosition); 
+     GetClientEyeAngles(client, EyeAngles); 
+     h_trace = TR_TraceRayFilterEx(EyePosition, EyeAngles, MASK_SOLID, RayType_Infinite, wS_GetLookPos_Filter, client); 
+     TR_GetEndPosition(wS_Pos, h_trace); 
+     CloseHandle(h_trace); 
+}
+
